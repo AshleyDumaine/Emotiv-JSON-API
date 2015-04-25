@@ -94,17 +94,17 @@ public class EEGLogCSV extends Frame implements KeyListener {
 					if (nSamplesTaken != null) {
 						if (nSamplesTaken.getValue() != 0) {
 							//System.out.print("Updated: "); //debug
-							//System.out.println(nSamplesTaken.getValue()); //debug
+							System.out.println(nSamplesTaken.getValue()); //debug
 							double[] data = new double[nSamplesTaken.getValue()];
-							for (int sampleIdx = 0; sampleIdx<nSamplesTaken.getValue(); sampleIdx++) {
+							for (int sampleIdx = 1; sampleIdx < nSamplesTaken.getValue(); sampleIdx++) { //start at 1
 								StringJoiner joiner = new StringJoiner(",");
-								for (int i = 0; i < 21; i++) { //3-17 are actual sensor values, 21 columns of data total
+								for (int i = 1; i < 17; i++) { //3-17 are actual sensor values, 21 columns of data total
 									Edk.INSTANCE.EE_DataGet(hData, i, data, nSamplesTaken.getValue());
-									joiner.add(String.valueOf(data[sampleIdx]));
+									joiner.add(String.valueOf(data[sampleIdx] - data[sampleIdx - 1])); //use delta instead of raw value
 								}
 								//add 0 or 1 for blink or no blink based on key presses
 								//joiner will make new columns for each EEG event
-								for (int i = 0; i < 16; i++) {
+								for (int i = 0; i < 12; i++) {
 									if (EEGEvents[i] == true) {
 										joiner.add("1");
 									}
@@ -188,7 +188,7 @@ public class EEGLogCSV extends Frame implements KeyListener {
 			EEGEvents[11] = true; //smirkright
 			System.out.println("smirkright activated");
 			break;
-		case '1':
+		/*case '1':
 			EEGEvents[12] = true; //cog 1
 			System.out.println("cog 1 activated");
 			break;
@@ -203,7 +203,7 @@ public class EEGLogCSV extends Frame implements KeyListener {
 		case '4':
 			EEGEvents[15] = true; //cog 4
 			System.out.println("cog 4 activated");
-			break;
+			break;*/
 		}
 	}
 
@@ -260,7 +260,7 @@ public class EEGLogCSV extends Frame implements KeyListener {
 			EEGEvents[11] = false; //smirkright
 			System.out.println("smirkright deactivated");
 			break;
-		case '1':
+		/*case '1':
 			EEGEvents[12] = false; //cog 1
 			System.out.println("cog 1 deactivated");
 			break;
@@ -275,7 +275,7 @@ public class EEGLogCSV extends Frame implements KeyListener {
 		case '4':
 			EEGEvents[15] = false; //cog 4
 			System.out.println("cog 4 deactivated");
-			break;
+			break;*/
 		}
 	}
 }

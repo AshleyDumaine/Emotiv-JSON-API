@@ -9,7 +9,7 @@ public class TestClient {
 		String params;
 		String JSONResponse;
 		BufferedReader inFromUser = new BufferedReader( new InputStreamReader(System.in));
-		Socket clientSocket = new Socket("localhost", 3333);
+		Socket clientSocket = new Socket("localhost", 2222);
 		DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
 		BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 		params = inFromUser.readLine();
