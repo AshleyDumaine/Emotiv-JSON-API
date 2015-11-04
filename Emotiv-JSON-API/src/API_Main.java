@@ -20,7 +20,7 @@ public class API_Main implements Runnable {
 	private static HashMap<String, Function<Pointer, Float>> affectivMap = new HashMap<String, Function<Pointer, Float>>();
 	private static HashMap<String, Function<Pointer, Number>> expressivMap = new HashMap<String, Function<Pointer, Number>>();
 	public static void main(String[] args) throws Exception {
-		API_Main self = new API_Main();
+		API_Main self= new API_Main();
 		self.run();
 	}
 
@@ -43,7 +43,10 @@ public class API_Main implements Runnable {
 		expressivMap = new HashMap<String, Function<Pointer, Number>>();
 
 		//cognitiv
-		BufferedReader br = new BufferedReader(new FileReader((new File("CognitivEvents.txt")).getAbsolutePath()));
+		//BufferedReader br = new BufferedReader(new FileReader((new File("CognitivEvents.txt")).getAbsolutePath()));
+		BufferedReader br = new BufferedReader(
+				new InputStreamReader(
+						API_Main.class.getResourceAsStream("CognitivEvents.txt")));
 		while ((line = br.readLine()) != null) {
 			String parts[] = line.split("\t");
 			cognitivMap.put(Integer.decode(parts[0]), parts[1]);
