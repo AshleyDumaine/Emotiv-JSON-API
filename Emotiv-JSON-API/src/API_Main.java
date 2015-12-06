@@ -125,13 +125,10 @@ public class API_Main implements Runnable {
 						params.add(st.nextToken());
 					System.out.println("Client wants updates on: " + params.toString()); 
 
-
-					//put stuff here?
 					//Edk.INSTANCE.EE_EngineRemoteConnect("127.0.0.1", (short) 0, "Emotiv Systems-5");
 					//probably rezero the gyro here....
 					if (Edk.INSTANCE.EE_HeadsetGyroRezero(0) == EdkErrorCode.EDK_OK.ToInt()) System.out.println("OK"); //0 should be the proper ID since only one headset
 					while (true) { 
-						//should all this be here?
 						//concatenated response of headset data and EEG events
 						JSONObject response = new JSONObject(); 
 						JSONObject headsetData = new JSONObject();
@@ -139,7 +136,7 @@ public class API_Main implements Runnable {
 						JSONObject emoStateData = new JSONObject();
 						JSONArray expressivArray = new JSONArray();
 						JSONArray affectivArray = new JSONArray();
-						JSONArray gyroArray = new JSONArray(); //NEW
+						JSONArray gyroArray = new JSONArray();
 						JSONObject gyroX = new JSONObject();
 						JSONObject gyroY = new JSONObject();
 
@@ -148,7 +145,7 @@ public class API_Main implements Runnable {
 						if (state == EdkErrorCode.EDK_OK.ToInt()) {
 
 							//Put gyro stuff here?
-							if (params.contains("Gyros")) { //seem to have a max of +/- 15000
+							if (params.contains("gyros") || params.contains("*")) { //seem to have a max of +/- 15000
 								Edk.INSTANCE.EE_HeadsetGetGyroDelta(0, pXOut, pYOut);
 								gyroX.put("GyroX", pXOut.getValue());
 								gyroY.put("GyroY", pYOut.getValue());
@@ -173,7 +170,7 @@ public class API_Main implements Runnable {
 								headsetData.put("BatteryChargeLevel", chargeLevel.getValue());
 								response.put("HeadsetData", headsetData);
 								for (Entry<String, Function<Pointer, Number>> entry : expressivMap.entrySet()) {
-									if (params.contains(entry.getKey())) {
+									if (params.contains(entry.getKey()) || params.contains("*") || params.contains("expressive")) {
 										float returnVal = (entry.getValue().apply(eState)).floatValue();
 										if (returnVal > 0) {
 											JSONObject jo = new JSONObject();
@@ -182,33 +179,35 @@ public class API_Main implements Runnable {
 										}
 									}	
 								}
-								if (params.contains("EyeLocation")) {
+								if (params.contains("EyeLocation") || params.contains("*") || params.contains("expressive")) {
 									JSONObject jo = new JSONObject();
 									FloatByReference eyeXLocation = new FloatByReference(0);
 									FloatByReference eyeYLocation = new FloatByReference(0);
 									EmoState.INSTANCE.ES_ExpressivGetEyeLocation(eState, eyeXLocation, eyeYLocation);
 									Point2D.Float eyeLocation = new Point2D.Float(eyeXLocation.getValue(),eyeYLocation.getValue());
-									jo.put("EyeLocation", eyeLocation); 
-									expressivArray.put(jo);
+									if (eyeXLocation.getValue() != 0.0 && eyeYLocation.getValue() != 0.0) {
+										jo.put("EyeLocation", eyeLocation); 
+										expressivArray.put(jo);
+									}
 								}
-								emoStateData.put("Expressiv", expressivArray);
+								emoStateData.put("Expressive", expressivArray);
 
 								for (Entry<String, Function<Pointer, Float>> entry : affectivMap.entrySet()) {
-									if (params.contains(entry.getKey())) {
+									if (params.contains(entry.getKey()) || params.contains("*") || params.contains("affective")) {
 										JSONObject jo = new JSONObject();
 										jo.put(entry.getKey(), (entry.getValue().apply(eState)).floatValue());
 										affectivArray.put(jo);
 									}	
 								}
-								emoStateData.put("Affectiv", affectivArray);
+								emoStateData.put("Affective", affectivArray);
 
 								JSONObject cognitivData = new JSONObject();
-								if (params.contains("Cognitiv")) {
+								if (params.contains("cognitive") || params.contains("*")) {
 									int currentAction = EmoState.INSTANCE.ES_CognitivGetCurrentAction(eState);
 									if (cognitivMap.containsKey(currentAction))
 										cognitivData.put(cognitivMap.get(currentAction), EmoState.INSTANCE.ES_CognitivGetCurrentActionPower(eState));
 								}
-								emoStateData.put("Cognitiv", cognitivData);
+								emoStateData.put("Cognitive", cognitivData);
 								response.put("EmoStateData", emoStateData);
 								outToClient.writeBytes(response.toString() + "\n"); //write to socket only at end
 							}

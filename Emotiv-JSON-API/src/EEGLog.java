@@ -27,7 +27,7 @@ public class EEGLog {
 		}
 
 		try {
-			Socket clientSocket = new Socket("localhost", 3333); //use socket
+			Socket clientSocket = new Socket("localhost", 4444); //use socket
 			DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
 			BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())); //probably unnecessary 
 			//close resources on abrupt program termination
