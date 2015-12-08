@@ -1,6 +1,5 @@
 # Emotiv-JSON-API
 An API for receiving Emotiv EPOC EEG events in JSON format using a TCP socket
-##This is part of an unfinished thesis, use at your own discretion.
 
 ##What:
 This project is meant to take data from a raw-data enabled EPOC or EPOC+ and convert it into JSON objects. It's useless if you don't have the Emotiv Xavier Research Edition libraries.
