@@ -16,3 +16,43 @@ A couple years ago, I created a [mind-controlled drone](https://www.youtube.com/
 What I did was use the EmoKey program that came with the Emotiv SDK to send emulated keystrokes to a Java window that had a KeyEventListener. Based on the key registered, it would send a different command to the drone. However, this required running the Emotiv Control Panel, EmoKey, and having the Java window in focus the whole time. Not to mention configuring commands based on arbitrary keys was confusing and annoying.
 
 I thought it would be nice to use sockets to communticate and a nice format such as JSON to transmit headset data instead of arbitrary keystrokes to an application in focus. I somewhat recently applied this change to the mind-controlled drone project and the code became a lot less messy and dare I say it even worked better than my previous implementation that relied on EmoKey. One huge difference was that this allowed me to control the drone with gyros, which is impossible to do using EmoKey.
+
+##Sample (Random) EEG Data For '*' Client Request
+```
+{
+  "HeadsetData": {
+    "EmoState": 0,
+    "IsHeadsetOnCorrectly": 1,
+    "Timestamp": 1449703039564,
+    "WirelessSignalStatus": "GOOD_SIGNAL",
+    "BatteryChargeLevel": 3
+  },
+  "EmoStateData": {
+    "Gyros": {
+      "GyroX": 0.43117159605026245,
+      "GyroY": 0.76333498954772949
+    },
+    "Expressive": {
+      "LookingRight": 0.42345261573791504,
+      "Clench": 0.7899823784828186,
+      "EyebrowRaise": 0.041739881038665771,
+      "LookingLeft": 0.2046046257019043,
+      "LookingDown": 0.7165074348449707,
+      "LookingUp": 0.17928200960159302,
+      "RightWink": 0.30473947525024414,
+      "Blink": 0.85040992498397827,
+      "EyesOpen": 0.26875156164169312,
+      "Smile": 0.51121920347213745,
+      "LeftWink": 0.92426103353500366
+    },
+    "Affective": {
+      "Meditation": 0.395449697971344,
+      "EngagementBoredom": 0.62335872650146484,
+      "ExcitementShortTerm": 0.808492124080658,
+      "Frustration": 0.8049471378326416,
+      "ExcitementLongTerm": 0.45547342300415039
+    },
+    "Cognitive": {}
+  }
+}
+```
