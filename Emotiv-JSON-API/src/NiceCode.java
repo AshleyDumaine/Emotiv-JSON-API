@@ -12,10 +12,10 @@ public class NiceCode {
 			outToServer.writeBytes("expressive" + '\n');
 			while ((JSONResponse = inFromServer.readLine()) != null) {
 				JSONObject obj = new JSONObject(JSONResponse);
-				JSONArray array = obj.getJSONObject("EmoStateData").getJSONArray("Expressive");
+				JSONObject data = obj.getJSONObject("EmoStateData").getJSONObject("Expressive");
 				System.out.print(
-						array.toString().replaceAll("[\\[\\]\\{\"]", "").replaceAll(
-								":", ", ").replaceAll("\\}", "\n"));
+						data.toString().replaceAll("[\\{\"\\}]", "").replaceAll(",", "\n").replaceAll(
+								":", ", "));
 			}
 			clientSocket.close();
 			inFromServer.close();
