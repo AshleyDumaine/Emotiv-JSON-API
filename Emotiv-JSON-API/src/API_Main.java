@@ -174,7 +174,6 @@ public class API_Main implements Runnable {
 									}	
 								}
 								if (params.contains("EyeLocation") || params.contains("*") || params.contains("expressive")) {
-									JSONObject jo = new JSONObject();
 									FloatByReference eyeXLocation = new FloatByReference(0);
 									FloatByReference eyeYLocation = new FloatByReference(0);
 									EmoState.INSTANCE.ES_ExpressivGetEyeLocation(eState, eyeXLocation, eyeYLocation);
