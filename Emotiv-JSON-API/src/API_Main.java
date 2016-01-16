@@ -7,7 +7,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
+
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 
 import org.json.*;
 
@@ -15,10 +19,22 @@ import com.sun.jna.Pointer;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.IntByReference;
 
+/**
+ * 
+ * Uses two separate sockets for communication of data between the server and any
+ * clients. Port 4444 is for the client to request updates on data and receive those
+ * updates in a stream. Port 4445 is for the client to hand training profile loading, 
+ * training, and creation for the cognitive commands.
+ *
+ */
+
 public class API_Main implements Runnable { 
-	private static HashMap<Integer, String> cognitivMap = new HashMap<Integer, String>();
-	private static HashMap<String, Function<Pointer, Float>> affectivMap = new HashMap<String, Function<Pointer, Float>>();
-	private static HashMap<String, Function<Pointer, Number>> expressivMap = new HashMap<String, Function<Pointer, Number>>();
+	private static HashMap<Integer, String> cognitivMap;
+	private static HashMap<Integer, Boolean> activeCognitivMap;
+	private static HashMap<String, EmoState.EE_CognitivAction_t> trainingMap;
+	private static HashMap<String, Function<Pointer, Float>> affectivMap;
+	private static HashMap<String, Function<Pointer, Number>> expressivMap;
+
 	public static void main(String[] args) throws Exception {
 		API_Main self= new API_Main();
 		self.run();
@@ -39,11 +55,12 @@ public class API_Main implements Runnable {
 	public static void constructMaps() throws IOException {
 		String line = "";
 		cognitivMap = new HashMap<Integer, String>();
+		trainingMap = new HashMap<String, EmoState.EE_CognitivAction_t>();
+		activeCognitivMap = new HashMap<Integer, Boolean>();
 		affectivMap = new HashMap<String, Function<Pointer, Float>>();
 		expressivMap = new HashMap<String, Function<Pointer, Number>>();
 
-		//cognitiv
-		//BufferedReader br = new BufferedReader(new FileReader((new File("CognitivEvents.txt")).getAbsolutePath()));
+		// cognitive
 		BufferedReader br = new BufferedReader(
 				new InputStreamReader(
 						API_Main.class.getResourceAsStream("CognitivEvents.txt")));
@@ -53,14 +70,34 @@ public class API_Main implements Runnable {
 		}
 		br.close();
 
-		//affectiv
+		// active cognitive 
+		br = new BufferedReader(
+				new InputStreamReader(
+						API_Main.class.getResourceAsStream("ActiveCognitivEvents.txt")));
+		while ((line = br.readLine()) != null) {
+			String parts[] = line.split("\t");
+			activeCognitivMap.put(Integer.decode(parts[0]), Boolean.valueOf(parts[1]));
+		}
+		br.close();
+
+		// training
+		br = new BufferedReader(
+				new InputStreamReader(
+						API_Main.class.getResourceAsStream("Training.txt")));
+		while ((line = br.readLine()) != null) {
+			String parts[] = line.split("\t");
+			trainingMap.put(parts[0], EmoState.EE_CognitivAction_t.valueOf(parts[1]));
+		}
+		br.close();
+
+		// affective
 		affectivMap.put("Frustration", EmoState.INSTANCE::ES_AffectivGetFrustrationScore);
 		affectivMap.put("Meditation", EmoState.INSTANCE::ES_AffectivGetMeditationScore);
 		affectivMap.put("EngagementBoredom", EmoState.INSTANCE::ES_AffectivGetEngagementBoredomScore);
 		affectivMap.put("ExcitementShortTerm", EmoState.INSTANCE::ES_AffectivGetExcitementShortTermScore);
 		affectivMap.put("ExcitementLongTerm", EmoState.INSTANCE::ES_AffectivGetExcitementLongTermScore);
 
-		//expressiv
+		// expressive
 		expressivMap.put("Blink", EmoState.INSTANCE::ES_ExpressivIsBlink);
 		expressivMap.put("LeftWink", EmoState.INSTANCE::ES_ExpressivIsLeftWink);
 		expressivMap.put("RightWink", EmoState.INSTANCE::ES_ExpressivIsRightWink);
@@ -74,11 +111,65 @@ public class API_Main implements Runnable {
 		expressivMap.put("EyebrowRaise", EmoState.INSTANCE::ES_ExpressivGetEyebrowExtent);
 	}
 
+	public static void startTrainingCognitiv(EmoState.EE_CognitivAction_t cognitivAction) {
+		if (activeCognitivMap.containsKey(cognitivAction) && activeCognitivMap.get(cognitivAction) == true) {
+			Edk.INSTANCE.EE_CognitivSetTrainingAction(0, cognitivAction.ToInt());
+			Edk.INSTANCE.EE_CognitivSetTrainingControl(0, Edk.EE_CognitivTrainingControl_t.COG_START.getType());
+		}
+	}
+
+	public static void enableCognitivAction(EmoState.EE_CognitivAction_t cognitivAction, Boolean iBool) {
+		if (activeCognitivMap.containsKey(cognitivAction.ToInt())) {
+			activeCognitivMap.replace(cognitivAction.ToInt(), iBool);
+		}
+	}
+
+	public static void enableCognitivActionsList() {
+		long cognitivActions = 0x0000;
+		for (Entry<Integer, Boolean> entry : activeCognitivMap.entrySet()) {
+			if (entry.getValue() && entry.getKey() != EmoState.EE_CognitivAction_t.COG_NEUTRAL.ToInt()) {
+				cognitivActions = cognitivActions | entry.getKey();
+			}
+		}
+		Edk.INSTANCE.EE_CognitivSetActiveActions(0, cognitivActions);     
+	}
+
+	public static void handleTraining(BufferedReader cogProfileInFromClient) {
+		String strRequestCogProfile = "";
+		while(true) {
+			try {
+				while (cogProfileInFromClient.ready()) {
+					strRequestCogProfile = cogProfileInFromClient.readLine();
+					System.out.println(strRequestCogProfile);
+					if (strRequestCogProfile.equals("save")) {
+						EmoProfileManagement.SaveCurrentProfile();
+						EmoProfileManagement.SaveProfilesToFile();
+					}
+
+					if (strRequestCogProfile.contains("train")) {
+						if (strRequestCogProfile.contains("neutral")) {
+							Edk.INSTANCE.EE_CognitivSetTrainingAction(0,EmoState.EE_CognitivAction_t.COG_NEUTRAL.ToInt());
+							Edk.INSTANCE.EE_CognitivSetTrainingControl(0, Edk.EE_CognitivTrainingControl_t.COG_START.getType());
+						}
+						else if (trainingMap.containsKey(strRequestCogProfile)) {
+							enableCognitivAction(trainingMap.get(strRequestCogProfile), true);
+							enableCognitivActionsList();
+							startTrainingCognitiv(trainingMap.get(strRequestCogProfile));
+						}
+					}
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
 	@Override
 	public void run() {
-		ServerSocket serverSocket;
+		ServerSocket serverSocket, serverCogProfileSocket;
 		try {
-			serverSocket = new ServerSocket(4444);
+			serverSocket 			= new ServerSocket(4444); // EEG data socket
+			serverCogProfileSocket 	= new ServerSocket(4445); // training profile socket
 			Pointer eEvent			= Edk.INSTANCE.EE_EmoEngineEventCreate();
 			Pointer eState			= Edk.INSTANCE.EE_EmoStateCreate();
 			IntByReference userID 	= new IntByReference(0);
@@ -108,14 +199,22 @@ public class API_Main implements Runnable {
 				return;
 			}
 
-
 			while (true) {
 				//will block, waiting for a client to send data to before it reads EEG data
 				try {
 					Socket connectionSocket = serverSocket.accept();
+					Socket trainingDataSocket = serverCogProfileSocket.accept(); // must be connected to both sockets to proceed
+
 					BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
 					DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
 
+					BufferedReader cogProfileInFromClient = new BufferedReader(new InputStreamReader(trainingDataSocket.getInputStream()));
+					DataOutputStream cogProfileOutToClient = new DataOutputStream(trainingDataSocket.getOutputStream());				
+
+					// handle training profile requests (from 4445) in a separate thread
+					new Thread(() -> handleTraining(cogProfileInFromClient)).start();
+
+					// handle EEG data transmission (to 4444) and training profile responses (to 4445)
 					// client tells server what events it wants to be updated about
 					strParams = inFromClient.readLine();
 
@@ -125,9 +224,9 @@ public class API_Main implements Runnable {
 						params.add(st.nextToken());
 					System.out.println("Client wants updates on: " + params.toString()); 
 
-					//Edk.INSTANCE.EE_EngineRemoteConnect("127.0.0.1", (short) 0, "Emotiv Systems-5");
-					//probably rezero the gyro here....
-					if (Edk.INSTANCE.EE_HeadsetGyroRezero(0) == EdkErrorCode.EDK_OK.ToInt()) System.out.println("OK"); //0 should be the proper ID since only one headset
+					// rezero the gyro here
+					if (Edk.INSTANCE.EE_HeadsetGyroRezero(0) == EdkErrorCode.EDK_OK.ToInt()) 
+						System.out.println("OK"); //0 should be the proper ID since only one headset
 					while (true) { 
 						//concatenated response of headset data and EEG events
 						JSONObject response = new JSONObject(); 
@@ -141,19 +240,43 @@ public class API_Main implements Runnable {
 						state = Edk.INSTANCE.EE_EngineGetNextEvent(eEvent);
 						// New event needs to be handled
 						if (state == EdkErrorCode.EDK_OK.ToInt()) {
-
-							//Put gyro stuff here?
 							if (params.contains("gyros") || params.contains("*")) { //seem to have a max of +/- 15000
 								Edk.INSTANCE.EE_HeadsetGetGyroDelta(0, pXOut, pYOut);
 								gyros.put("GyroX", pXOut.getValue());
 								gyros.put("GyroY", pYOut.getValue());
 								emoStateData.put("Gyros", gyros);
 							}
-							
-							
+
 							int eventType = Edk.INSTANCE.EE_EmoEngineEventGetType(eEvent);
 							Edk.INSTANCE.EE_EmoEngineEventGetUserId(eEvent, userID);
-							// Log the EmoState if it has been updated
+
+							if (eventType == Edk.EE_Event_t.EE_UserAdded.ToInt()) {
+								cogProfileOutToClient.writeBytes("Enter username: \n");
+								String user = cogProfileInFromClient.readLine();
+								System.out.println("User: " + user);
+								EmoProfileManagement.AddNewProfile(user);
+							}
+
+							if (eventType == Edk.EE_Event_t.EE_CognitivEvent.ToInt()) {
+								int cogType = Edk.INSTANCE.EE_CognitivEventGetType(eEvent);
+								if(cogType == Edk.EE_CognitivEvent_t.EE_CognitivTrainingStarted.getType()) {
+									cogProfileOutToClient.writeBytes("Cognitive trainging started.\n");
+								}
+								else if(cogType == Edk.EE_CognitivEvent_t.EE_CognitivTrainingCompleted.getType()) {
+									cogProfileOutToClient.writeBytes("Cognitive trainging complete.\n");
+								}
+								else if(cogType == Edk.EE_CognitivEvent_t.EE_CognitivTrainingSucceeded.getType()) {
+									Edk.INSTANCE.EE_CognitivSetTrainingControl(0,Edk.EE_CognitivTrainingControl_t.COG_ACCEPT.getType());
+									cogProfileOutToClient.writeBytes("Cognitive trainging succeeded.\n");
+								}
+								else if(cogType == Edk.EE_CognitivEvent_t.EE_CognitivTrainingFailed.getType()) {
+									cogProfileOutToClient.writeBytes("Cognitive trainging failed.\n");
+								}
+								else if(cogType == Edk.EE_CognitivEvent_t.EE_CognitivTrainingRejected.getType()) {
+									cogProfileOutToClient.writeBytes("Cognitive trainging rejected.\n");
+								}
+							}
+
 							if (eventType == Edk.EE_Event_t.EE_EmoStateUpdated.ToInt()) {
 								Edk.INSTANCE.EE_EmoEngineEventGetEmoState(eEvent, eState);
 								headsetData.put("Timestamp", EmoState.INSTANCE.ES_GetTimeFromStart(eState));

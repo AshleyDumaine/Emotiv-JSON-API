@@ -1,0 +1,13 @@
+push	COG_PUSH
+pull	COG_PULL
+lift	COG_LIFT
+drop	COG_DROP
+left	COG_LEFT
+right	COG_RIGHT
+rotate_left	COG_ROTATE_LEFT
+rotate_right	COG_ROTATE_RIGHT
+rotate_clockwise	COG_ROTATE_CLOCKWISE
+rotate_counter_clockwise	COG_ROTATE_COUNTER_CLOCKWISE
+rotate_forwards	COG_ROTATE_FORWARDS
+rotate_reverse	COG_ROTATE_REVERSE
+disappear	COG_DISAPPEAR
