@@ -108,7 +108,7 @@ public class API_Main implements Runnable {
 	}
 
 	public static void startTrainingCognitiv(EmoState.EE_CognitivAction_t cognitivAction) {
-		if (activeCognitivMap.containsKey(cognitivAction) && activeCognitivMap.get(cognitivAction) == true) {
+		if (activeCognitivMap.containsKey(cognitivAction.ToInt()) && activeCognitivMap.get(cognitivAction.ToInt()) == true) {
 			Edk.INSTANCE.EE_CognitivSetTrainingAction(0, cognitivAction.ToInt());
 			Edk.INSTANCE.EE_CognitivSetTrainingControl(0, Edk.EE_CognitivTrainingControl_t.COG_START.getType());
 		}
@@ -117,6 +117,7 @@ public class API_Main implements Runnable {
 	public static void enableCognitivAction(EmoState.EE_CognitivAction_t cognitivAction, Boolean iBool) {
 		if (activeCognitivMap.containsKey(cognitivAction.ToInt())) {
 			activeCognitivMap.replace(cognitivAction.ToInt(), iBool);
+			System.out.println(cognitivAction.toString() + " enabled");
 		}
 	}
 
@@ -143,14 +144,15 @@ public class API_Main implements Runnable {
 					}
 
 					if (strRequestCogProfile.contains("train")) {
+						String command = strRequestCogProfile.substring(strRequestCogProfile.lastIndexOf(" ") + 1);
 						if (strRequestCogProfile.contains("neutral")) {
 							Edk.INSTANCE.EE_CognitivSetTrainingAction(0,EmoState.EE_CognitivAction_t.COG_NEUTRAL.ToInt());
 							Edk.INSTANCE.EE_CognitivSetTrainingControl(0, Edk.EE_CognitivTrainingControl_t.COG_START.getType());
 						}
-						else if (trainingMap.containsKey(strRequestCogProfile)) {
-							enableCognitivAction(trainingMap.get(strRequestCogProfile), true);
+						else if (trainingMap.containsKey(command)) {
+							enableCognitivAction(trainingMap.get(command), true);
 							enableCognitivActionsList();
-							startTrainingCognitiv(trainingMap.get(strRequestCogProfile));
+							startTrainingCognitiv(trainingMap.get(command));
 						}
 					}
 				}
