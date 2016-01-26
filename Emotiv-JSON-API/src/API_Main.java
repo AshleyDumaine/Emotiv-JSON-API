@@ -14,6 +14,7 @@ import org.json.*;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.IntByReference;
+//import com.sun.jna.ptr.NativeLongByReference;
 
 /**
  * 
@@ -107,31 +108,32 @@ public class API_Main implements Runnable {
 		expressivMap.put("EyebrowRaise", EmoState.INSTANCE::ES_ExpressivGetEyebrowExtent);
 	}
 
-	public static void startTrainingCognitiv(EmoState.EE_CognitivAction_t cognitivAction) {
-		if (activeCognitivMap.containsKey(cognitivAction.ToInt()) && activeCognitivMap.get(cognitivAction.ToInt()) == true) {
-			Edk.INSTANCE.EE_CognitivSetTrainingAction(0, cognitivAction.ToInt());
-			Edk.INSTANCE.EE_CognitivSetTrainingControl(0, Edk.EE_CognitivTrainingControl_t.COG_START.getType());
-		}
+	public static void startTrainingCognitiv(EmoState.EE_CognitivAction_t cognitivAction, Pointer eEvent) {
+		//if (activeCognitivMap.containsKey(cognitivAction.ToInt()) && activeCognitivMap.get(cognitivAction.ToInt()) == true) {
+			UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingAction(0, cognitivAction.ToInt());
+			UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingControl(0,
+					UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_START.getType());
+		//}
 	}
 
-	public static void enableCognitivAction(EmoState.EE_CognitivAction_t cognitivAction, Boolean iBool) {
+	/*public static void enableCognitivAction(EmoState.EE_CognitivAction_t cognitivAction, Boolean iBool) {
 		if (activeCognitivMap.containsKey(cognitivAction.ToInt())) {
 			activeCognitivMap.replace(cognitivAction.ToInt(), iBool);
 			System.out.println(cognitivAction.toString() + " enabled");
 		}
-	}
+	}*/
 
-	public static void enableCognitivActionsList() {
+	public static void enableCognitivActionsList(Pointer eEvent) {
 		long cognitivActions = 0x0000;
 		for (Entry<Integer, Boolean> entry : activeCognitivMap.entrySet()) {
 			if (entry.getValue() && entry.getKey() != EmoState.EE_CognitivAction_t.COG_NEUTRAL.ToInt()) {
 				cognitivActions = cognitivActions | entry.getKey();
 			}
 		}
-		Edk.INSTANCE.EE_CognitivSetActiveActions(0, cognitivActions);     
+		UpgradedEdk.INSTANCE.IEE_MentalCommandSetActiveActions(0, cognitivActions);     
 	}
 
-	public static void handleTraining(BufferedReader cogProfileInFromClient) {
+	public static void handleTraining(BufferedReader cogProfileInFromClient, Pointer eEvent) {
 		String strRequestCogProfile = "";
 		while(true) {
 			try {
@@ -142,17 +144,53 @@ public class API_Main implements Runnable {
 						EmoProfileManagement.SaveCurrentProfile();
 						EmoProfileManagement.SaveProfilesToFile();
 					}
-
-					if (strRequestCogProfile.contains("train")) {
+					else if (strRequestCogProfile.contains("check")) {
+						 /*EmoProfileManagement.LoadProfilesFromFile();
+					     EmoProfileManagement.SetUserProfile("TestCogClient");*/
+					     String actionList = EmoProfileManagement.CheckCurrentProfile();
+					     long cognitivActions = Long.valueOf(actionList);
+					     System.out.println(cognitivActions);
+					     UpgradedEdk.INSTANCE.IEE_MentalCommandSetActiveActions(0, cognitivActions);
+							/*NativeLongByReference num = new NativeLongByReference();
+							UpgradedEdk.INSTANCE.IEE_MentalCommandGetTrainedSignatureActions(userID.getValue(), num);
+							System.out.println(num.getValue());*/
+					}
+					else if (strRequestCogProfile.contains("train")) {
 						String command = strRequestCogProfile.substring(strRequestCogProfile.lastIndexOf(" ") + 1);
 						if (strRequestCogProfile.contains("neutral")) {
-							Edk.INSTANCE.EE_CognitivSetTrainingAction(0,EmoState.EE_CognitivAction_t.COG_NEUTRAL.ToInt());
-							Edk.INSTANCE.EE_CognitivSetTrainingControl(0, Edk.EE_CognitivTrainingControl_t.COG_START.getType());
+							UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingAction(0,
+									EmoState.EE_CognitivAction_t.COG_NEUTRAL.ToInt());
+							UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingControl(0,
+									UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_START.getType());
 						}
 						else if (trainingMap.containsKey(command)) {
-							enableCognitivAction(trainingMap.get(command), true);
-							enableCognitivActionsList();
-							startTrainingCognitiv(trainingMap.get(command));
+							//enableCognitivAction(trainingMap.get(command), true);
+							enableCognitivActionsList(eEvent);
+							startTrainingCognitiv(trainingMap.get(command), eEvent);
+						}
+					}
+					else if (strRequestCogProfile.contains("set")){
+						// must each be between 1 and 10
+						if (strRequestCogProfile.contains("command sensitivity")) {
+							UpgradedEdk.INSTANCE.IEE_MentalCommandSetActionSensitivity(0, 10, 10, 10, 10);
+						}
+						else if (strRequestCogProfile.contains("overall sensitivity")) {
+							// must be between 1 and 7
+							UpgradedEdk.INSTANCE.IEE_MentalCommandSetActivationLevel(0, 10);
+						}
+					}
+					else if (strRequestCogProfile.contains("get")){
+						if (strRequestCogProfile.contains("command sensitivity")) {
+							IntByReference level1 = new IntByReference(0);
+							IntByReference level2 = new IntByReference(0);
+							IntByReference level3 = new IntByReference(0);
+							IntByReference level4 = new IntByReference(0);
+							UpgradedEdk.INSTANCE.IEE_MentalCommandGetActionSensitivity(0, 
+									level1, level2, level3, level4);
+						}
+						else if (strRequestCogProfile.contains("overall sensitivity")) {
+							IntByReference level = new IntByReference(0);
+							UpgradedEdk.INSTANCE.IEE_MentalCommandGetActivationLevel(0, level);
 						}
 					}
 				}
@@ -168,13 +206,14 @@ public class API_Main implements Runnable {
 		try {
 			serverSocket 			= new ServerSocket(4444); // EEG data socket
 			serverCogProfileSocket 	= new ServerSocket(4445); // training profile socket
-			Pointer eEvent			= Edk.INSTANCE.EE_EmoEngineEventCreate();
-			Pointer eState			= Edk.INSTANCE.EE_EmoStateCreate();
+			Pointer eEvent			= UpgradedEdk.INSTANCE.IEE_EmoEngineEventCreate();
+			Pointer eState			= UpgradedEdk.INSTANCE.IEE_EmoStateCreate();
+			//Pointer hMotionData 	= UpgradedEdk.INSTANCE.IEE_MotionDataCreate();
 			IntByReference userID 	= new IntByReference(0);
 			IntByReference pXOut	= new IntByReference(0);
 			IntByReference pYOut	= new IntByReference(0);
+			//IntByReference nSamplesTaken = new IntByReference(0);
 			//IntByReference contactQuality = new IntByReference(0);
-			IntByReference chargeLevel = new IntByReference(0);
 			int state = 0;
 			String strParams = "";
 			HashSet<String> params = new HashSet<String>(); //use HashSet for O(1) lookup time
@@ -192,7 +231,7 @@ public class API_Main implements Runnable {
 
 			constructMaps();
 
-			if (Edk.INSTANCE.EE_EngineConnect("Emotiv Systems-5") != EdkErrorCode.EDK_OK.ToInt()) {
+			if (UpgradedEdk.INSTANCE.IEE_EngineConnect("Emotiv Systems-5") != EdkErrorCode.EDK_OK.ToInt()) {
 				System.out.println("Emotiv Engine start up failed.");
 				return;
 			}
@@ -210,7 +249,7 @@ public class API_Main implements Runnable {
 					DataOutputStream cogProfileOutToClient = new DataOutputStream(trainingDataSocket.getOutputStream());				
 
 					// handle training profile requests (from 4445) in a separate thread
-					new Thread(() -> handleTraining(cogProfileInFromClient)).start();
+					new Thread(() -> handleTraining(cogProfileInFromClient, eEvent)).start();
 
 					// handle EEG data transmission (to 4444) and training profile responses (to 4445)
 					// client tells server what events it wants to be updated about
@@ -223,68 +262,93 @@ public class API_Main implements Runnable {
 					System.out.println("Client wants updates on: " + params.toString()); 
 
 					// rezero the gyro here
-					if (Edk.INSTANCE.EE_HeadsetGyroRezero(0) == EdkErrorCode.EDK_OK.ToInt()) 
+					if (UpgradedEdk.INSTANCE.IEE_HeadsetGyroRezero(0) == EdkErrorCode.EDK_OK.ToInt()) 
 						System.out.println("OK"); //0 should be the proper ID since only one headset
+					
+					//concatenated response of headset data and EEG events
+					JSONObject response = new JSONObject(); 
+					JSONObject headsetData = new JSONObject();
+					//EEG Events
+					JSONObject emoStateData = new JSONObject();
+					JSONObject expressivData = new JSONObject();
+					JSONObject affectivData = new JSONObject();
+					JSONObject gyros = new JSONObject();
+					//JSONObject motionData = new JSONObject();
 					while (true) { 
-						//concatenated response of headset data and EEG events
-						JSONObject response = new JSONObject(); 
-						JSONObject headsetData = new JSONObject();
-						//EEG Events
-						JSONObject emoStateData = new JSONObject();
-						JSONObject expressivData = new JSONObject();
-						JSONObject affectivData = new JSONObject();
-						JSONObject gyros = new JSONObject();
 
-						state = Edk.INSTANCE.EE_EngineGetNextEvent(eEvent);
+						state = UpgradedEdk.INSTANCE.IEE_EngineGetNextEvent(eEvent);
 						// New event needs to be handled
-						if (state == EdkErrorCode.EDK_OK.ToInt()) {
-							if (params.contains("gyros") || params.contains("*")) { //seem to have a max of +/- 15000
-								Edk.INSTANCE.EE_HeadsetGetGyroDelta(0, pXOut, pYOut);
+						if (state == EdkErrorCode.EDK_OK.ToInt()) {							
+							if (params.contains("gyros") || params.contains("motion") || params.contains("*")) {
+								//seem to have a max of +/- 15000
+								UpgradedEdk.INSTANCE.IEE_HeadsetGetGyroDelta(0, pXOut, pYOut);
 								gyros.put("GyroX", pXOut.getValue());
 								gyros.put("GyroY", pYOut.getValue());
 								emoStateData.put("Gyros", gyros);
 							}
+//							if (params.contains("motion") ||params.contains("*")) {
+//								UpgradedEdk.INSTANCE.IEE_MotionDataUpdateHandle(0, hMotionData);
+//								UpgradedEdk.INSTANCE.IEE_MotionDataGetNumberOfSample(hMotionData, nSamplesTaken);
+//								if (nSamplesTaken != null && nSamplesTaken.getValue() != 0) {
+//									System.out.println("Updated: " + nSamplesTaken.getValue());
+//									double[] data = new double[nSamplesTaken.getValue()];
+//									for (int sampleIdx = 0; sampleIdx < nSamplesTaken.getValue(); sampleIdx++) {
+//										for (int i = 0; i < 10; i++) {
+//											UpgradedEdk.INSTANCE.IEE_MotionDataGet(hMotionData, i, data,
+//													nSamplesTaken.getValue());
+//											System.out.print(data[sampleIdx] + ", ");
+//										}
+//										System.out.println();
+//									}
+//								}
+//							}
 
-							int eventType = Edk.INSTANCE.EE_EmoEngineEventGetType(eEvent);
-							Edk.INSTANCE.EE_EmoEngineEventGetUserId(eEvent, userID);
+							int eventType = UpgradedEdk.INSTANCE.IEE_EmoEngineEventGetType(eEvent);
+							UpgradedEdk.INSTANCE.IEE_EmoEngineEventGetUserId(eEvent, userID);
 
-							if (eventType == Edk.EE_Event_t.EE_UserAdded.ToInt()) {
+							if (eventType == UpgradedEdk.IEE_Event_t.IEE_UserAdded.ToInt()) {
 								cogProfileOutToClient.writeBytes("Enter username: \n");
 								String user = cogProfileInFromClient.readLine();
 								System.out.println("User: " + user);
 								EmoProfileManagement.AddNewProfile(user);
+								String actionList = EmoProfileManagement.CheckCurrentProfile();
+							     long cognitivActions = Long.valueOf(actionList);
+							     System.out.println(cognitivActions);
+							     UpgradedEdk.INSTANCE.IEE_MentalCommandSetActiveActions(0, cognitivActions);
 							}
 
-							if (eventType == Edk.EE_Event_t.EE_CognitivEvent.ToInt()) {
-								int cogType = Edk.INSTANCE.EE_CognitivEventGetType(eEvent);
-								if(cogType == Edk.EE_CognitivEvent_t.EE_CognitivTrainingStarted.getType()) {
+							if (eventType == UpgradedEdk.IEE_Event_t.IEE_MentalCommandEvent.ToInt()) {
+								int cogType = UpgradedEdk.INSTANCE.IEE_MentalCommandEventGetType(eEvent);
+								if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingStarted.getType()) {
 									cogProfileOutToClient.writeBytes("Cognitive trainging started.\n");
 								}
-								else if(cogType == Edk.EE_CognitivEvent_t.EE_CognitivTrainingCompleted.getType()) {
+								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingCompleted.getType()) {
 									cogProfileOutToClient.writeBytes("Cognitive trainging complete.\n");
 								}
-								else if(cogType == Edk.EE_CognitivEvent_t.EE_CognitivTrainingSucceeded.getType()) {
-									Edk.INSTANCE.EE_CognitivSetTrainingControl(0,Edk.EE_CognitivTrainingControl_t.COG_ACCEPT.getType());
+								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingSucceeded.getType()) {
+									UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingControl(0,
+											UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_ACCEPT.getType());
 									cogProfileOutToClient.writeBytes("Cognitive trainging succeeded.\n");
 								}
-								else if(cogType == Edk.EE_CognitivEvent_t.EE_CognitivTrainingFailed.getType()) {
+								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingFailed.getType()) {
 									cogProfileOutToClient.writeBytes("Cognitive trainging failed.\n");
 								}
-								else if(cogType == Edk.EE_CognitivEvent_t.EE_CognitivTrainingRejected.getType()) {
+								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingRejected.getType()) {
 									cogProfileOutToClient.writeBytes("Cognitive trainging rejected.\n");
 								}
 							}
 
-							if (eventType == Edk.EE_Event_t.EE_EmoStateUpdated.ToInt()) {
-								Edk.INSTANCE.EE_EmoEngineEventGetEmoState(eEvent, eState);
+							if (eventType == UpgradedEdk.IEE_Event_t.IEE_EmoStateUpdated.ToInt()) {
+								UpgradedEdk.INSTANCE.IEE_EmoEngineEventGetEmoState(eEvent, eState);
 								headsetData.put("Timestamp", EmoState.INSTANCE.ES_GetTimeFromStart(eState));
 								headsetData.put("EmoState", userID.getValue());
 								headsetData.put("WirelessSignalStatus", wirelessSignalStatus[EmoState.INSTANCE.ES_GetWirelessSignalStatus(eState)]);
 								//headsetData.put("SensorContactQuality", EmoState.INSTANCE.ES_GetContactQualityFromAllChannels(eState, contactQuality, numChannels));
-								headsetData.put("IsHeadsetOnCorrectly", EmoState.INSTANCE.ES_GetHeadsetOn(eState));
-								IntByReference maxChargeLevel = new IntByReference(); //maxChargeLevel = ???
-								EmoState.INSTANCE.ES_GetBatteryChargeLevel(eState, chargeLevel, maxChargeLevel);
-								headsetData.put("BatteryChargeLevel", chargeLevel.getValue());
+								headsetData.put("IsHeadsetOn", EmoState.INSTANCE.ES_GetHeadsetOn(eState));
+								IntByReference batteryLevel = new IntByReference(0);
+								IntByReference maxBatteryLevel = new IntByReference(0);
+								EmoState.INSTANCE.ES_GetBatteryChargeLevel(eState, batteryLevel, maxBatteryLevel);
+								headsetData.put("BatteryChargeLevel", batteryLevel.getValue());
 								response.put("HeadsetData", headsetData);
 								for (Entry<String, Function<Pointer, Number>> entry : expressivMap.entrySet()) {
 									if (params.contains(entry.getKey()) || params.contains("*") || params.contains("expressive")) {
@@ -311,16 +375,18 @@ public class API_Main implements Runnable {
 									}	
 								}
 								emoStateData.put("Affective", affectivData);
-
+								
 								JSONObject cognitivData = new JSONObject();
 								if (params.contains("cognitive") || params.contains("*")) {
+									System.out.println(EmoState.INSTANCE.ES_CognitivGetCurrentAction(eState));//EmoState.INSTANCE.ES_CognitivIsActive(eState));
 									int currentAction = EmoState.INSTANCE.ES_CognitivGetCurrentAction(eState);
 									if (cognitivMap.containsKey(currentAction))
-										cognitivData.put(cognitivMap.get(currentAction), EmoState.INSTANCE.ES_CognitivGetCurrentActionPower(eState));
+										System.out.println("got here " + cognitivMap.get(currentAction));
+										//cognitivData.put(cognitivMap.get(currentAction), EmoState.INSTANCE.ES_CognitivGetCurrentActionPower(eState));
 								}
 								emoStateData.put("Cognitive", cognitivData);
 								response.put("EmoStateData", emoStateData);
-								outToClient.writeBytes(response.toString() + "\n"); //write to socket only at end
+								outToClient.writeBytes(response.toString() + "\n"); //write to socket only at end*/
 							}
 						}
 						else if (state != EdkErrorCode.EDK_NO_EVENT.ToInt()) {
@@ -328,7 +394,9 @@ public class API_Main implements Runnable {
 							break;
 						}
 					}
-					Edk.INSTANCE.EE_EngineDisconnect();
+					UpgradedEdk.INSTANCE.IEE_EngineDisconnect();
+					UpgradedEdk.INSTANCE.IEE_EmoStateFree(eState);
+					UpgradedEdk.INSTANCE.IEE_EmoEngineEventFree(eEvent);
 					System.out.println("Disconnected!");
 				}
 				catch (SocketException se) {
@@ -342,5 +410,4 @@ public class API_Main implements Runnable {
 			e1.printStackTrace();
 		}
 	}
-
 }

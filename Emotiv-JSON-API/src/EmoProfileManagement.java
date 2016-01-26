@@ -23,7 +23,7 @@ class Profile {
 	{
 		if (hProfile != null)
 		{
-			Edk.INSTANCE.EE_EmoEngineEventFree(hProfile);
+			UpgradedEdk.INSTANCE.IEE_EmoEngineEventFree(hProfile);
 		}
 	}
 	public byte[] getBytes()
@@ -85,18 +85,18 @@ public class EmoProfileManagement {
     {
     	System.out.println("Save Profile to File");
     	String currentPath = System.getProperty("user.dir");
-    	File f = new File(currentPath + "\\EmotivUserProfile");
+    	File f = new File(currentPath + "/EmotivUserProfile");
     	
     	if(!f.exists())
     	{
     		f.mkdir();
     	}
-    	String path = currentPath + "\\EmotivUserProfile";
+    	String path = currentPath + "/EmotivUserProfile";
     	
     	for(int i = 0;i< userProfiles.size();i++)
     	{
     		UserProfile tmp =userProfiles.get(i);
-    		ByteArrayToFile(path + "\\"+tmp.profileName+".emo",tmp.profile.getBytes());
+    		ByteArrayToFile(path + "/"+tmp.profileName+".emo",tmp.profile.getBytes());
     	}
     	
     }
@@ -108,12 +108,12 @@ public class EmoProfileManagement {
     public static String[] GetProfileList()
     {
     	String currentPath = System.getProperty("user.dir");
-    	File f = new File(currentPath + "\\EmotivUserProfile");
+    	File f = new File(currentPath + "/EmotivUserProfile");
     	if(!f.exists())
     	{
     		f.mkdir();
     	}
-    	String mPath = currentPath + "\\EmotivUserProfile";
+    	String mPath = currentPath + "/EmotivUserProfile";
     	
     	File file = new File(mPath);
     	
@@ -148,12 +148,13 @@ public class EmoProfileManagement {
     public static void LoadProfilesFromFile()
     {
     	String currentPath = System.getProperty("user.dir");
-    	File f = new File(currentPath + "\\EmotivUserProfile");
+    	System.out.println(currentPath);
+    	File f = new File(currentPath + "/EmotivUserProfile");
     	if(!f.exists())
     	{
     		f.mkdir();
     	}
-    	String mPath = currentPath + "\\EmotivUserProfile";
+    	String mPath = currentPath + "/EmotivUserProfile";
     	File file = new File(mPath);
     	
     	FilenameFilter filter = new FilenameFilter() {
@@ -191,10 +192,10 @@ public class EmoProfileManagement {
     			e.printStackTrace();
     		}
     	}
-    	System.out.println("Length khoa:"+userProfiles.size());
+    	System.out.println("Length:"+userProfiles.size());
     	for(int k = 0;k<userProfiles.size();k++)
     	{
-    		System.out.println("name:"+userProfiles.get(k).profileName);
+    		System.out.println("name :"+userProfiles.get(k).profileName);
     	}
     }
     public static Profile GetUserProfile()
@@ -361,15 +362,14 @@ public class EmoProfileManagement {
     }
     
     /// <summary>
-    /// Check Cognitiv Actions That Enabled In The Profile
+    /// Check MentalCommand Actions That Enabled In The Profile
     /// </summary>
     /// <returns></returns>
 	public static String CheckCurrentProfile()
     {
         NativeLongByReference temp = new NativeLongByReference();
-        Edk.INSTANCE.EE_CognitivGetActiveActions(0,temp);        
+        UpgradedEdk.INSTANCE.IEE_MentalCommandGetActiveActions(0,temp);        
         String test = temp.getValue().toString();
         return test;        
     }
 }
-

@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.Scanner;
 
 import org.json.*;
 
@@ -13,12 +14,13 @@ public class TestCogClient {
 			BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 			DataOutputStream trainingOutToServer = new DataOutputStream(clientTrainingSocket.getOutputStream());
 			BufferedReader trainingInFromServer = new BufferedReader(new InputStreamReader(clientTrainingSocket.getInputStream()));
-			outToServer.writeBytes("expressive" + '\n');
+			outToServer.writeBytes("cognitive" + '\n');
 			new Thread(() -> handleTraining(trainingInFromServer, trainingOutToServer)).start();
 			while ((JSONResponse = inFromServer.readLine()) != null) {
 				JSONObject obj = new JSONObject(JSONResponse);
-				JSONObject data = obj.getJSONObject("EmoStateData").getJSONObject("Expressive");
-				/*System.out.println(
+				/*System.out.println(obj.toString());
+				JSONObject data = obj.getJSONObject("EmoStateData").getJSONObject("Cognitive");
+				System.out.println(
 						data.toString().replaceAll("[\\{\"\\}]", "").replaceAll(",", "\n").replaceAll(
 								":", " "));*/
 			}
@@ -35,22 +37,20 @@ public class TestCogClient {
 
 	public static void handleTraining(BufferedReader trainingInFromServer, DataOutputStream trainingOutToServer) {
 		String response = "";
+		InputStreamReader fileInputStream = new InputStreamReader(System.in);
+		BufferedReader br = new BufferedReader(fileInputStream);
 		while(true) {
 			try {
 				while (trainingInFromServer.ready()) {
 					response = trainingInFromServer.readLine();
 					System.out.println(response);
 					if (response.contains("Enter username:")) {
-						trainingOutToServer.writeBytes("TestCogClient\n");
+						trainingOutToServer.writeBytes("Jon\n");
 					}
 				}
-				try {
-					Thread.sleep(20000);
-					trainingOutToServer.writeBytes("train neutral\n");
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+				while (br.ready()){
+					trainingOutToServer.writeBytes(br.readLine() + '\n');
 				}
-
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
