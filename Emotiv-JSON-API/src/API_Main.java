@@ -123,7 +123,7 @@ public class API_Main implements Runnable {
 		UpgradedEdk.INSTANCE.IEE_MentalCommandSetActiveActions(0, cognitivActions);     
 	}
 
-	public static void handleTraining(BufferedReader cogProfileInFromClient, Pointer eEvent) {
+	public static void handleTraining(BufferedReader cogProfileInFromClient, DataOutputStream cogProfileOutToClient, Pointer eEvent) {
 		String strRequestCogProfile = "";
 		while(true) {
 			try {
@@ -150,11 +150,18 @@ public class API_Main implements Runnable {
 					else if (strRequestCogProfile.contains("set")){
 						// must each be between 1 and 10
 						if (strRequestCogProfile.contains("command sensitivity")) {
-							UpgradedEdk.INSTANCE.IEE_MentalCommandSetActionSensitivity(0, 10, 10, 10, 10);
+							String[] strnums = strRequestCogProfile.replace("set command sensitivity ", "").split(", ");
+							UpgradedEdk.INSTANCE.IEE_MentalCommandSetActionSensitivity(0, 
+									Integer.parseInt(strnums[0]),
+									Integer.parseInt(strnums[1]),
+									Integer.parseInt(strnums[2]),
+									Integer.parseInt(strnums[3]));
 						}
 						else if (strRequestCogProfile.contains("overall sensitivity")) {
 							// must be between 1 and 7
-							UpgradedEdk.INSTANCE.IEE_MentalCommandSetActivationLevel(0, 7);
+							System.out.println(strRequestCogProfile.replace("set overall sensitivity ", ""));
+							UpgradedEdk.INSTANCE.IEE_MentalCommandSetActivationLevel(0, 
+									Integer.parseInt(strRequestCogProfile.replace("set overall sensitivity ", "")));
 						}
 					}
 					else if (strRequestCogProfile.contains("get")){
@@ -165,10 +172,16 @@ public class API_Main implements Runnable {
 							IntByReference level4 = new IntByReference(0);
 							UpgradedEdk.INSTANCE.IEE_MentalCommandGetActionSensitivity(0, 
 									level1, level2, level3, level4);
+							cogProfileOutToClient.writeBytes(
+									level1.getValue() + ", " +
+									level2.getValue() + ", " +
+									level3.getValue() + ", " +
+									level4.getValue() + "\n");
 						}
 						else if (strRequestCogProfile.contains("overall sensitivity")) {
 							IntByReference level = new IntByReference(0);
 							UpgradedEdk.INSTANCE.IEE_MentalCommandGetActivationLevel(0, level);
+							cogProfileOutToClient.writeBytes(level.getValue() + "\n");
 						}
 					}
 				}
@@ -229,7 +242,7 @@ public class API_Main implements Runnable {
 					DataOutputStream cogProfileOutToClient = new DataOutputStream(trainingDataSocket.getOutputStream());				
 
 					// handle training profile requests (from 4445) in a separate thread
-					new Thread(() -> handleTraining(cogProfileInFromClient, eEvent)).start();
+					new Thread(() -> handleTraining(cogProfileInFromClient, cogProfileOutToClient, eEvent)).start();
 
 					// handle EEG data transmission (to 4444) and training profile responses (to 4445)
 					// client tells server what events it wants to be updated about
