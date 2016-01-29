@@ -14,7 +14,6 @@ import org.json.*;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.IntByReference;
-//import com.sun.jna.ptr.NativeLongByReference;
 
 /**
  * 
@@ -109,19 +108,10 @@ public class API_Main implements Runnable {
 	}
 
 	public static void startTrainingCognitiv(EmoState.EE_CognitivAction_t cognitivAction, Pointer eEvent) {
-		//if (activeCognitivMap.containsKey(cognitivAction.ToInt()) && activeCognitivMap.get(cognitivAction.ToInt()) == true) {
-			UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingAction(0, cognitivAction.ToInt());
-			UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingControl(0,
-					UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_START.getType());
-		//}
+		UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingAction(0, cognitivAction.ToInt());
+		UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingControl(0,
+				UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_START.getType());
 	}
-
-	/*public static void enableCognitivAction(EmoState.EE_CognitivAction_t cognitivAction, Boolean iBool) {
-		if (activeCognitivMap.containsKey(cognitivAction.ToInt())) {
-			activeCognitivMap.replace(cognitivAction.ToInt(), iBool);
-			System.out.println(cognitivAction.toString() + " enabled");
-		}
-	}*/
 
 	public static void enableCognitivActionsList(Pointer eEvent) {
 		long cognitivActions = 0x0000;
@@ -144,17 +134,6 @@ public class API_Main implements Runnable {
 						EmoProfileManagement.SaveCurrentProfile();
 						EmoProfileManagement.SaveProfilesToFile();
 					}
-					else if (strRequestCogProfile.contains("check")) {
-						 /*EmoProfileManagement.LoadProfilesFromFile();
-					     EmoProfileManagement.SetUserProfile("TestCogClient");*/
-					     String actionList = EmoProfileManagement.CheckCurrentProfile();
-					     long cognitivActions = Long.valueOf(actionList);
-					     System.out.println(cognitivActions);
-					     UpgradedEdk.INSTANCE.IEE_MentalCommandSetActiveActions(0, cognitivActions);
-							/*NativeLongByReference num = new NativeLongByReference();
-							UpgradedEdk.INSTANCE.IEE_MentalCommandGetTrainedSignatureActions(userID.getValue(), num);
-							System.out.println(num.getValue());*/
-					}
 					else if (strRequestCogProfile.contains("train")) {
 						String command = strRequestCogProfile.substring(strRequestCogProfile.lastIndexOf(" ") + 1);
 						if (strRequestCogProfile.contains("neutral")) {
@@ -164,8 +143,7 @@ public class API_Main implements Runnable {
 									UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_START.getType());
 						}
 						else if (trainingMap.containsKey(command)) {
-							//enableCognitivAction(trainingMap.get(command), true);
-							enableCognitivActionsList(eEvent);
+							//enableCognitivActionsList(eEvent); // might be causing issues, will comment out until confirmed
 							startTrainingCognitiv(trainingMap.get(command), eEvent);
 						}
 					}
@@ -176,7 +154,7 @@ public class API_Main implements Runnable {
 						}
 						else if (strRequestCogProfile.contains("overall sensitivity")) {
 							// must be between 1 and 7
-							UpgradedEdk.INSTANCE.IEE_MentalCommandSetActivationLevel(0, 10);
+							UpgradedEdk.INSTANCE.IEE_MentalCommandSetActivationLevel(0, 7);
 						}
 					}
 					else if (strRequestCogProfile.contains("get")){
@@ -208,10 +186,12 @@ public class API_Main implements Runnable {
 			serverCogProfileSocket 	= new ServerSocket(4445); // training profile socket
 			Pointer eEvent			= UpgradedEdk.INSTANCE.IEE_EmoEngineEventCreate();
 			Pointer eState			= UpgradedEdk.INSTANCE.IEE_EmoStateCreate();
-			//Pointer hMotionData 	= UpgradedEdk.INSTANCE.IEE_MotionDataCreate();
 			IntByReference userID 	= new IntByReference(0);
 			IntByReference pXOut	= new IntByReference(0);
 			IntByReference pYOut	= new IntByReference(0);
+			// based on Emotiv library, may or may not be able to access other motion data
+			// besides X and Y gyros, so below lines are commented out for now
+			//Pointer hMotionData 	= UpgradedEdk.INSTANCE.IEE_MotionDataCreate();
 			//IntByReference nSamplesTaken = new IntByReference(0);
 			//IntByReference contactQuality = new IntByReference(0);
 			int state = 0;
@@ -286,22 +266,6 @@ public class API_Main implements Runnable {
 								gyros.put("GyroY", pYOut.getValue());
 								emoStateData.put("Gyros", gyros);
 							}
-//							if (params.contains("motion") ||params.contains("*")) {
-//								UpgradedEdk.INSTANCE.IEE_MotionDataUpdateHandle(0, hMotionData);
-//								UpgradedEdk.INSTANCE.IEE_MotionDataGetNumberOfSample(hMotionData, nSamplesTaken);
-//								if (nSamplesTaken != null && nSamplesTaken.getValue() != 0) {
-//									System.out.println("Updated: " + nSamplesTaken.getValue());
-//									double[] data = new double[nSamplesTaken.getValue()];
-//									for (int sampleIdx = 0; sampleIdx < nSamplesTaken.getValue(); sampleIdx++) {
-//										for (int i = 0; i < 10; i++) {
-//											UpgradedEdk.INSTANCE.IEE_MotionDataGet(hMotionData, i, data,
-//													nSamplesTaken.getValue());
-//											System.out.print(data[sampleIdx] + ", ");
-//										}
-//										System.out.println();
-//									}
-//								}
-//							}
 
 							int eventType = UpgradedEdk.INSTANCE.IEE_EmoEngineEventGetType(eEvent);
 							UpgradedEdk.INSTANCE.IEE_EmoEngineEventGetUserId(eEvent, userID);
@@ -343,7 +307,6 @@ public class API_Main implements Runnable {
 								headsetData.put("Timestamp", EmoState.INSTANCE.ES_GetTimeFromStart(eState));
 								headsetData.put("EmoState", userID.getValue());
 								headsetData.put("WirelessSignalStatus", wirelessSignalStatus[EmoState.INSTANCE.ES_GetWirelessSignalStatus(eState)]);
-								//headsetData.put("SensorContactQuality", EmoState.INSTANCE.ES_GetContactQualityFromAllChannels(eState, contactQuality, numChannels));
 								headsetData.put("IsHeadsetOn", EmoState.INSTANCE.ES_GetHeadsetOn(eState));
 								IntByReference batteryLevel = new IntByReference(0);
 								IntByReference maxBatteryLevel = new IntByReference(0);
@@ -378,11 +341,10 @@ public class API_Main implements Runnable {
 								
 								JSONObject cognitivData = new JSONObject();
 								if (params.contains("cognitive") || params.contains("*")) {
-									System.out.println(EmoState.INSTANCE.ES_CognitivGetCurrentAction(eState));//EmoState.INSTANCE.ES_CognitivIsActive(eState));
 									int currentAction = EmoState.INSTANCE.ES_CognitivGetCurrentAction(eState);
 									if (cognitivMap.containsKey(currentAction))
 										System.out.println("got here " + cognitivMap.get(currentAction));
-										//cognitivData.put(cognitivMap.get(currentAction), EmoState.INSTANCE.ES_CognitivGetCurrentActionPower(eState));
+										cognitivData.put(cognitivMap.get(currentAction), EmoState.INSTANCE.ES_CognitivGetCurrentActionPower(eState));
 								}
 								emoStateData.put("Cognitive", cognitivData);
 								response.put("EmoStateData", emoStateData);
