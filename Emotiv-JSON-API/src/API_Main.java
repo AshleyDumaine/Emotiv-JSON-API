@@ -27,7 +27,7 @@ import com.sun.jna.ptr.IntByReference;
 public class API_Main implements Runnable { 
 	private static HashMap<Integer, String> cognitivMap;
 	private static HashMap<Integer, Boolean> activeCognitivMap;
-	private static HashMap<String, EmoState.EE_CognitivAction_t> trainingMap;
+	private static HashMap<String, Integer> trainingMap;
 	private static HashMap<String, Function<Pointer, Float>> affectivMap;
 	private static HashMap<String, Function<Pointer, Number>> expressivMap;
 
@@ -51,7 +51,7 @@ public class API_Main implements Runnable {
 	public static void constructMaps() throws IOException {
 		String line = "";
 		cognitivMap = new HashMap<Integer, String>();
-		trainingMap = new HashMap<String, EmoState.EE_CognitivAction_t>();
+		trainingMap = new HashMap<String, Integer>();
 		activeCognitivMap = new HashMap<Integer, Boolean>();
 		affectivMap = new HashMap<String, Function<Pointer, Float>>();
 		expressivMap = new HashMap<String, Function<Pointer, Number>>();
@@ -82,7 +82,7 @@ public class API_Main implements Runnable {
 						API_Main.class.getResourceAsStream("Training.txt")));
 		while ((line = br.readLine()) != null) {
 			String parts[] = line.split("\t");
-			trainingMap.put(parts[0], EmoState.EE_CognitivAction_t.valueOf(parts[1]));
+			trainingMap.put(parts[0], Integer.decode(parts[1]));
 		}
 		br.close();
 
@@ -107,8 +107,8 @@ public class API_Main implements Runnable {
 		expressivMap.put("EyebrowRaise", EmoState.INSTANCE::ES_ExpressivGetEyebrowExtent);
 	}
 
-	public static void startTrainingCognitiv(EmoState.EE_CognitivAction_t cognitivAction, Pointer eEvent) {
-		UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingAction(0, cognitivAction.ToInt());
+	public static void startTrainingCognitiv(Integer cognitivAction, Pointer eEvent) {
+		UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingAction(0, cognitivAction);
 		UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingControl(0,
 				UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_START.getType());
 	}
@@ -143,7 +143,7 @@ public class API_Main implements Runnable {
 									UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_START.getType());
 						}
 						else if (trainingMap.containsKey(command)) {
-							//enableCognitivActionsList(eEvent); // might be causing issues, will comment out until confirmed
+							enableCognitivActionsList(eEvent); // might be causing issues, will comment out until confirmed
 							startTrainingCognitiv(trainingMap.get(command), eEvent);
 						}
 					}
@@ -253,7 +253,6 @@ public class API_Main implements Runnable {
 					JSONObject expressivData = new JSONObject();
 					JSONObject affectivData = new JSONObject();
 					JSONObject gyros = new JSONObject();
-					//JSONObject motionData = new JSONObject();
 					while (true) { 
 
 						state = UpgradedEdk.INSTANCE.IEE_EngineGetNextEvent(eEvent);
@@ -343,7 +342,6 @@ public class API_Main implements Runnable {
 								if (params.contains("cognitive") || params.contains("*")) {
 									int currentAction = EmoState.INSTANCE.ES_CognitivGetCurrentAction(eState);
 									if (cognitivMap.containsKey(currentAction))
-										System.out.println("got here " + cognitivMap.get(currentAction));
 										cognitivData.put(cognitivMap.get(currentAction), EmoState.INSTANCE.ES_CognitivGetCurrentActionPower(eState));
 								}
 								emoStateData.put("Cognitive", cognitivData);
