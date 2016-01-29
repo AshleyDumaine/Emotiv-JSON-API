@@ -143,7 +143,7 @@ public class API_Main implements Runnable {
 									UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_START.getType());
 						}
 						else if (trainingMap.containsKey(command)) {
-							enableCognitivActionsList(eEvent); // might be causing issues, will comment out until confirmed
+							enableCognitivActionsList(eEvent);
 							startTrainingCognitiv(trainingMap.get(command), eEvent);
 						}
 					}
@@ -288,9 +288,9 @@ public class API_Main implements Runnable {
 								System.out.println("User: " + user);
 								EmoProfileManagement.AddNewProfile(user);
 								String actionList = EmoProfileManagement.CheckCurrentProfile();
-							     long cognitivActions = Long.valueOf(actionList);
-							     System.out.println(cognitivActions);
-							     UpgradedEdk.INSTANCE.IEE_MentalCommandSetActiveActions(0, cognitivActions);
+							        long cognitivActions = Long.valueOf(actionList);
+							        System.out.println(cognitivActions);
+							        UpgradedEdk.INSTANCE.IEE_MentalCommandSetActiveActions(0, cognitivActions);
 							}
 
 							if (eventType == UpgradedEdk.IEE_Event_t.IEE_MentalCommandEvent.ToInt()) {
@@ -354,8 +354,9 @@ public class API_Main implements Runnable {
 								JSONObject cognitivData = new JSONObject();
 								if (params.contains("cognitive") || params.contains("*")) {
 									int currentAction = EmoState.INSTANCE.ES_CognitivGetCurrentAction(eState);
-									if (cognitivMap.containsKey(currentAction))
+									if (cognitivMap.containsKey(currentAction)) {
 										cognitivData.put(cognitivMap.get(currentAction), EmoState.INSTANCE.ES_CognitivGetCurrentActionPower(eState));
+									}
 								}
 								emoStateData.put("Cognitive", cognitivData);
 								response.put("EmoStateData", emoStateData);
