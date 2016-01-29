@@ -320,21 +320,21 @@ public class API_Main implements Runnable {
 							if (eventType == UpgradedEdk.IEE_Event_t.IEE_MentalCommandEvent.ToInt()) {
 								int cogType = UpgradedEdk.INSTANCE.IEE_MentalCommandEventGetType(eEvent);
 								if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingStarted.getType()) {
-									cogProfileOutToClient.writeBytes("Cognitive trainging started.\n");
+									cogProfileOutToClient.writeBytes("Cognitive training started.\n");
 								}
 								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingCompleted.getType()) {
-									cogProfileOutToClient.writeBytes("Cognitive trainging complete.\n");
+									cogProfileOutToClient.writeBytes("Cognitive training complete.\n");
 								}
 								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingSucceeded.getType()) {
 									UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingControl(0,
 											UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_ACCEPT.getType());
-									cogProfileOutToClient.writeBytes("Cognitive trainging succeeded.\n");
+									cogProfileOutToClient.writeBytes("Cognitive training succeeded.\n");
 								}
 								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingFailed.getType()) {
-									cogProfileOutToClient.writeBytes("Cognitive trainging failed.\n");
+									cogProfileOutToClient.writeBytes("Cognitive training failed.\n");
 								}
 								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingRejected.getType()) {
-									cogProfileOutToClient.writeBytes("Cognitive trainging rejected.\n");
+									cogProfileOutToClient.writeBytes("Cognitive training rejected.\n");
 								}
 							}
 
