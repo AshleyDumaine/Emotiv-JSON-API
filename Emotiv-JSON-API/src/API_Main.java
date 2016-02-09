@@ -15,7 +15,7 @@ import com.sun.jna.Pointer;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.IntByReference;
 
-/*
+/**
  * 
  * Uses two separate sockets for communication of data between the server and any
  * clients. Port 4444 is for the client to request updates on data and receive those
@@ -199,14 +199,15 @@ public class API_Main implements Runnable {
 			serverCogProfileSocket 	= new ServerSocket(4445); // training profile socket
 			Pointer eEvent			= UpgradedEdk.INSTANCE.IEE_EmoEngineEventCreate();
 			Pointer eState			= UpgradedEdk.INSTANCE.IEE_EmoStateCreate();
+			//Pointer hMotionData 	= UpgradedEdk.INSTANCE.IEE_MotionDataCreate();
 			IntByReference userID 	= new IntByReference(0);
 			IntByReference pXOut	= new IntByReference(0);
 			IntByReference pYOut	= new IntByReference(0);
 			// based on Emotiv library, may or may not be able to access other motion data
 			// besides X and Y gyros, so below lines are commented out for now
-			//Pointer hMotionData 	= UpgradedEdk.INSTANCE.IEE_MotionDataCreate();
-			//IntByReference nSamplesTaken = new IntByReference(0);
-			//IntByReference contactQuality = new IntByReference(0);
+			// Pointer hMotionData 	= UpgradedEdk.INSTANCE.IEE_MotionDataCreate();
+			// IntByReference nSamplesTaken = new IntByReference(0);
+			// IntByReference contactQuality = new IntByReference(0);
 			int state = 0;
 			String strParams = "";
 			HashSet<String> params = new HashSet<String>(); //use HashSet for O(1) lookup time
@@ -295,21 +296,21 @@ public class API_Main implements Runnable {
 							if (eventType == UpgradedEdk.IEE_Event_t.IEE_MentalCommandEvent.ToInt()) {
 								int cogType = UpgradedEdk.INSTANCE.IEE_MentalCommandEventGetType(eEvent);
 								if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingStarted.getType()) {
-									cogProfileOutToClient.writeBytes("Cognitive training started.\n");
+									cogProfileOutToClient.writeBytes("Cognitive trainging started.\n");
 								}
 								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingCompleted.getType()) {
-									cogProfileOutToClient.writeBytes("Cognitive training complete.\n");
+									cogProfileOutToClient.writeBytes("Cognitive trainging complete.\n");
 								}
 								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingSucceeded.getType()) {
 									UpgradedEdk.INSTANCE.IEE_MentalCommandSetTrainingControl(0,
 											UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_ACCEPT.getType());
-									cogProfileOutToClient.writeBytes("Cognitive training succeeded.\n");
+									cogProfileOutToClient.writeBytes("Cognitive trainging succeeded.\n");
 								}
 								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingFailed.getType()) {
-									cogProfileOutToClient.writeBytes("Cognitive training failed.\n");
+									cogProfileOutToClient.writeBytes("Cognitive trainging failed.\n");
 								}
 								else if(cogType == UpgradedEdk.IEE_MentalCommandEvent_t.IEE_MentalCommandTrainingRejected.getType()) {
-									cogProfileOutToClient.writeBytes("Cognitive training rejected.\n");
+									cogProfileOutToClient.writeBytes("Cognitive trainging rejected.\n");
 								}
 							}
 
@@ -318,6 +319,7 @@ public class API_Main implements Runnable {
 								headsetData.put("Timestamp", EmoState.INSTANCE.ES_GetTimeFromStart(eState));
 								headsetData.put("EmoState", userID.getValue());
 								headsetData.put("WirelessSignalStatus", wirelessSignalStatus[EmoState.INSTANCE.ES_GetWirelessSignalStatus(eState)]);
+								//headsetData.put("SensorContactQuality", EmoState.INSTANCE.ES_GetContactQualityFromAllChannels(eState, contactQuality, numChannels));
 								headsetData.put("IsHeadsetOn", EmoState.INSTANCE.ES_GetHeadsetOn(eState));
 								IntByReference batteryLevel = new IntByReference(0);
 								IntByReference maxBatteryLevel = new IntByReference(0);
@@ -353,13 +355,14 @@ public class API_Main implements Runnable {
 								JSONObject cognitivData = new JSONObject();
 								if (params.contains("cognitive") || params.contains("*")) {
 									int currentAction = EmoState.INSTANCE.ES_CognitivGetCurrentAction(eState);
-									if (cognitivMap.containsKey(currentAction))
-										// System.out.println(currentAction) // debug
+									if (cognitivMap.containsKey(currentAction)){
+										System.out.println("got here " + cognitivMap.get(currentAction));
 										cognitivData.put(cognitivMap.get(currentAction), EmoState.INSTANCE.ES_CognitivGetCurrentActionPower(eState));
-								}
+									}
+									}
 								emoStateData.put("Cognitive", cognitivData);
 								response.put("EmoStateData", emoStateData);
-								outToClient.writeBytes(response.toString() + "\n"); //write to socket only at end
+								outToClient.writeBytes(response.toString() + "\n"); //write to socket only at end*/
 							}
 						}
 						else if (state != EdkErrorCode.EDK_NO_EVENT.ToInt()) {
