@@ -15,7 +15,7 @@ import com.sun.jna.Pointer;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.IntByReference;
 
-/**
+/*
  * 
  * Uses two separate sockets for communication of data between the server and any
  * clients. Port 4444 is for the client to request updates on data and receive those
@@ -143,7 +143,7 @@ public class API_Main implements Runnable {
 									UpgradedEdk.IEE_MentalCommandTrainingControl_t.MC_START.getType());
 						}
 						else if (trainingMap.containsKey(command)) {
-							enableCognitivActionsList(eEvent); // might be causing issues, will comment out until confirmed
+							enableCognitivActionsList(eEvent);
 							startTrainingCognitiv(trainingMap.get(command), eEvent);
 						}
 					}
@@ -289,7 +289,6 @@ public class API_Main implements Runnable {
 								EmoProfileManagement.AddNewProfile(user);
 								String actionList = EmoProfileManagement.CheckCurrentProfile();
 							     long cognitivActions = Long.valueOf(actionList);
-							     System.out.println(cognitivActions);
 							     UpgradedEdk.INSTANCE.IEE_MentalCommandSetActiveActions(0, cognitivActions);
 							}
 
@@ -355,11 +354,12 @@ public class API_Main implements Runnable {
 								if (params.contains("cognitive") || params.contains("*")) {
 									int currentAction = EmoState.INSTANCE.ES_CognitivGetCurrentAction(eState);
 									if (cognitivMap.containsKey(currentAction))
+										// System.out.println(currentAction) // debug
 										cognitivData.put(cognitivMap.get(currentAction), EmoState.INSTANCE.ES_CognitivGetCurrentActionPower(eState));
 								}
 								emoStateData.put("Cognitive", cognitivData);
 								response.put("EmoStateData", emoStateData);
-								outToClient.writeBytes(response.toString() + "\n"); //write to socket only at end*/
+								outToClient.writeBytes(response.toString() + "\n"); //write to socket only at end
 							}
 						}
 						else if (state != EdkErrorCode.EDK_NO_EVENT.ToInt()) {
