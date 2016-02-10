@@ -261,16 +261,16 @@ public class API_Main implements Runnable {
 					//concatenated response of headset data and EEG events
 					JSONObject response = new JSONObject(); 
 					JSONObject headsetData = new JSONObject();
-					//EEG Events
-					JSONObject emoStateData = new JSONObject();
-					JSONObject expressivData = new JSONObject();
-					JSONObject affectivData = new JSONObject();
-					JSONObject gyros = new JSONObject();
 					while (true) { 
-
 						state = UpgradedEdk.INSTANCE.IEE_EngineGetNextEvent(eEvent);
 						// New event needs to be handled
-						if (state == EdkErrorCode.EDK_OK.ToInt()) {							
+						if (state == EdkErrorCode.EDK_OK.ToInt()) {	
+							//EEG Events
+							JSONObject emoStateData = new JSONObject();
+							JSONArray expressivArray = new JSONArray();
+							JSONArray affectivArray = new JSONArray();
+							JSONObject gyros = new JSONObject();
+							
 							if (params.contains("gyros") || params.contains("motion") || params.contains("*")) {
 								//seem to have a max of +/- 15000
 								UpgradedEdk.INSTANCE.IEE_HeadsetGetGyroDelta(0, pXOut, pYOut);
@@ -328,7 +328,9 @@ public class API_Main implements Runnable {
 									if (params.contains(entry.getKey()) || params.contains("*") || params.contains("expressive")) {
 										float returnVal = (entry.getValue().apply(eState)).floatValue();
 										if (returnVal > 0) {
-											expressivData.put(entry.getKey(), returnVal);
+											JSONObject jo = new JSONObject();
+											jo.put(entry.getKey(), returnVal);
+											expressivArray.put(jo);
 										}
 									}	
 								}
@@ -338,17 +340,21 @@ public class API_Main implements Runnable {
 									EmoState.INSTANCE.ES_ExpressivGetEyeLocation(eState, eyeXLocation, eyeYLocation);
 									Point2D.Float eyeLocation = new Point2D.Float(eyeXLocation.getValue(),eyeYLocation.getValue());
 									if (eyeXLocation.getValue() != 0.0 && eyeYLocation.getValue() != 0.0) {
-										expressivData.put("EyeLocation", eyeLocation);
+										JSONObject jo = new JSONObject();
+										jo.put("EyeLocation", eyeLocation);
+										expressivArray.put(jo);
 									}
 								}
-								emoStateData.put("Expressive", expressivData);
+								emoStateData.put("Expressive", expressivArray);
 
 								for (Entry<String, Function<Pointer, Float>> entry : affectivMap.entrySet()) {
 									if (params.contains(entry.getKey()) || params.contains("*") || params.contains("affective")) {
-										affectivData.put(entry.getKey(), (entry.getValue().apply(eState)).floatValue());
+										JSONObject jo = new JSONObject();
+										jo.put(entry.getKey(), (entry.getValue().apply(eState)).floatValue());
+										affectivArray.put(jo);
 									}	
 								}
-								emoStateData.put("Affective", affectivData);
+								emoStateData.put("Affective", affectivArray);
 								
 								JSONObject cognitivData = new JSONObject();
 								if (params.contains("cognitive") || params.contains("*")) {
